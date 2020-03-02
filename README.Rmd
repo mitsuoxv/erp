@@ -315,7 +315,7 @@ plot_tf_idf <- function(year_start, year_end) {
 
 ```
 
-Digitization is not perfect. When I search "inn" in 1956, I find "innovation" and some axis parts of charts as "inn". So, you may see some strange words below. Also, be aware that the scale of the tf-idf axis is not the same across years.
+Digitization is not perfect. When I search "inn" in 1956, I find some axis parts of charts as "inn". So, you may see some strange words below. Also, be aware that the scale of the tf-idf axis is not the same across years.
 
 Anyway, can't you feel the history?
 
