@@ -1,0 +1,276 @@
+---
+title: "Sentiment analysis of the economic report of the president"
+author: "Mitsuo Shiota"
+date: "2020/3/2"
+output: 
+  github_document:
+    toc: TRUE
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Updated: `r Sys.Date()`
+
+## Motivation
+
+After I have done [td-idf analysis](https://github.com/mitsuoxv/erp/blob/master/README.md), I would like to do sentiment analysis of the economic report of the president. Basically, I follow the codes in ["Text Mining Fedspeak" by Len Kiefer](http://lenkiefer.com/2018/07/28/text-mining-fedspeak/).
+
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(tidytext)
+```
+
+## Prepare cleaned-up texts and tidytext data
+
+```{r preparation, echo=FALSE}
+load("data/erp.rdata")
+
+erp_text_raw <- vector("list", length = length(erp_list))
+
+for (i in seq_along(erp_text_raw)) {
+  erp_text_raw[[i]] <- 
+    tibble(
+      text = unlist(erp_list[[i]]),
+      report = names(erp_list)[i],
+      page = 1:length(erp_list[[i]])
+    ) %>% 
+    mutate(text = str_split(text,"\r")) %>% 
+    unnest(text) %>% 
+    group_by(report, page) %>% 
+    mutate(line = row_number()) %>% 
+    ungroup() %>% 
+    mutate(text = str_remove_all(text, "\n"))
+  
+}
+
+erp_text_raw_df <- bind_rows(erp_text_raw)
+
+erp_text_raw_df <- erp_text_raw_df %>% 
+  mutate(year = as.integer(str_sub(report, 1L, 4L))) %>% 
+  select(-report)
+
+pages_pres <- tibble(
+  year = 1947:2020,
+  start = c(10, 9, 9,
+            9, 9, 9, 9, 4, 5, 5, 5, 5, 5,
+            5, 5, 11, 11, 11, 9, 9, 9, 9, 9,
+            9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+            9, 9, 9, 9, 7, 9, 9, 9, 9, 9,
+            9, 9, 9, 9, 9, 4, 7, 9, 9, 9,
+            4, 4, 4, 5, 8, 5, 5, 5, 5, 4,
+            8, 8, 7, 7, 8, 8, 8, 8, 8, 8,
+            8),
+  end = c(11, 18, 26,
+          25, 33, 39, 35, 6, 8, 8, 9, 8, 9,
+          7, 7, 35, 30, 26, 27, 27, 32, 34, 30,
+          17, 15, 13, 13, 16, 14, 14, 17, 29, 21,
+          21, 25, 16, 14, 13, 15, 17, 14, 16, 17,
+          14, 16, 11, 11, 14, 9, 10, 11, 11, 12,
+          8, 6, 5, 6, 9, 7, 7, 7, 7, 8,
+          14, 12, 9, 9, 11, 11, 11, 11, 16, 11,
+          13)
+)
+
+pages_pres <- pages_pres %>% 
+  mutate(n_pages = end - start + 1)
+
+erp_text <- erp_text_raw_df %>% 
+  unnest_tokens(word, text) %>% 
+  mutate(word = str_remove_all(word, "[^A-Za-z ]")) %>%
+  filter(word != "")
+```
+
+To refresh memory, I show some variables below.
+
+erp_text_raw_df is a data frame consisted of 4 colums: "year", "page", "line", "text". "text" is not yet tidy.
+
+```{r erp_text_raw_df}
+erp_text_raw_df
+```
+
+erp_text is a data frame after "text" was tokenized into "word". It has 4 colums: "year", "page", "line", "word".
+
+```{r erp_text}
+erp_text
+```
+
+pages_pres is a data frame to show the page in which the president part starts and ends. It has 4 colums: "year", "start", "end", "n_pages". I will do sentiment analysis only for this president part.
+
+```{r pages_pres}
+pages_pres
+```
+
+## Check sentimental words by bigram
+
+I use "bing" to get sentimental words, which show either "positive" or "negative". Among the sentimental words, "benefits" appear most in the president part of the economic report of the president.
+
+```{r sentiment_word_rank}
+sentiment_word_rank <- erp_text %>%
+  inner_join(get_sentiments("bing"), by = "word") %>%
+  count(word, sentiment, sort = TRUE) %>% 
+  mutate(rank = rank(desc(n), ties.method = "random"))
+
+sentiment_word_rank
+```
+
+Some of sentimental words in "bing" are just technical terms in economic reports. "debt" is such an example.
+
+"gross" ranks 26, but it is likely to be a part of technical terms, like "gross domestic product". Thus Len Kiefer suspects in ["Text Mining Fedspeak"](http://lenkiefer.com/2018/07/28/text-mining-fedspeak/).
+
+I suspect "benefits" is another example, as it appears in the technical terms like "social benefits".
+
+```{r gross}
+sentiment_word_rank %>% 
+  filter(word == "gross")
+```
+
+Let's check Len Kiefer's and my suspicion. I go back to erp_text_raw_df, and tokenize "text" not by a single word into "word", but by 2 consecutive words into "bigram" this time. Then I get erp_bigrams, which is a data frame of 4 colums: "year", "page", "line" and "bigram".
+
+```{r bigram}
+erp_bigrams <-   
+  erp_text_raw_df %>%
+  unnest_tokens(bigram, text, token = "ngrams", n = 2) %>% 
+  drop_na(bigram)
+
+erp_bigrams
+```
+
+Most frequently used bigrams are uninteresting, as they include stop words.
+
+```{r count_bigram}
+erp_bigrams %>%
+  count(bigram, sort = TRUE)
+```
+
+So I separate "bigram" into "word1" and "word2", and filter so that either "word1" or "word2" is not a stop word. After filtering, most frequently used bigrams are "labor force", etc. They show these reports are indeed about the economy.
+
+```{r count_bigram_wo_stop_words}
+bigrams_separated <- erp_bigrams %>%
+  separate(bigram, c("word1", "word2"), sep = " ")
+
+bigrams_filtered <- bigrams_separated %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word)
+
+bigrams_filtered %>% 
+  count(word1, word2, sort = TRUE)
+```
+
+What word follows "gross" most frequently? As Len Kiefer suspects, "gross" is a part of technical terms, and should not be included in the sentimental words.
+
+```{r check_gross}
+bigrams_filtered %>%
+  filter(word1 == "gross") %>%
+  count(word2, sort = TRUE)
+```
+
+What word precedes "benefits" most frequently? My suspicion is confirmed.
+
+```{r check_benefits}
+bigrams_filtered %>%
+  filter(word2 == "benefits") %>%
+  count(word1, sort = TRUE)
+```
+
+So I add "benefits" to the stop words prepared by Len Kiefer in ["Text Mining Fedspeak"](http://lenkiefer.com/2018/07/28/text-mining-fedspeak/).
+
+```{r stop_words}
+custom_stop_words2 <- 
+  bind_rows(tibble(word = c("benefits",
+                            "debt",
+                            "gross",
+                            "crude",
+                            "well",
+                            "maturity",
+                            "work",
+                            "marginally",
+                            "leverage"),
+                   lexicon = c("custom")),
+            stop_words)
+```
+
+## Sentiment analysis of the president part
+
+I will do sentiment analysis to the president part, not including the Council of Economic Advisers part. So I first get the president part.
+
+```{r get_president_part}
+erp_text_pres <- erp_text %>% 
+  left_join(pages_pres, by = "year") %>% 
+  filter(page >= start, page <= end)
+```
+
+Next I count both positive and negative words, and take the difference as "sentiment". I draw "sentiment" by year. Looks like the presidents before 1970 were optimistic. But wait. 
+
+```{r not_standardaized_sentiment}
+erp_text_pres %>%
+  anti_join(custom_stop_words2, by = "word") %>%
+  inner_join(get_sentiments("bing"), by = "word") %>%
+  count(year, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative) %>% 
+  ggplot(aes(year, sentiment)) +
+  geom_line()
+```
+
+As I count the number of words, "sentiment" gets bigger either in positive or negative direction, as the number of words increase. As I drawed in [td-idf analysis](https://github.com/mitsuoxv/erp/blob/master/README.md), the number of pages before Reagan was usually large.
+
+```{r n_pages}
+pages_pres %>% 
+  ggplot(aes(year, n_pages)) +
+  geom_hline(yintercept = 0, color = "white", size = 2) +
+  geom_line()
+
+```
+
+So I decide to standardize by the number of words excluding stop words. First I count the number of words excluding stop words by year.
+
+```{r count_words}
+erp_words <-
+  erp_text_pres %>%
+  anti_join(custom_stop_words2, by = "word") %>% 
+  group_by(year) %>% 
+  count()
+```
+
+I prepare to draw shaded areas of recession. I owe this technique also to Len Kiefer, as I refer to his ["Plotting U.S. Macroeconomic Trends with FRED and R"](http://lenkiefer.com/2017/12/11/plotting-u-s-macroeconomic-trends-with-fred-and-r/).
+
+```{r recession_df}
+recessions_df = read.table(textConnection(
+  "Peak, Trough
+  1948-11-01, 1949-10-01
+  1953-07-01, 1954-05-01
+  1957-08-01, 1958-04-01
+  1960-04-01, 1961-02-01
+  1969-12-01, 1970-11-01
+  1973-11-01, 1975-03-01
+  1980-01-01, 1980-07-01
+  1981-07-01, 1982-11-01
+  1990-07-01, 1991-03-01
+  2001-03-01, 2001-11-01
+  2007-12-01, 2009-06-01"), sep=',',
+  colClasses=c('Date', 'Date'), header=TRUE)
+```
+
+As the reports were mostly published in January or February of each year, I put the points in February in each year. The shaded areas are recessions. The sentiments tend to fall after the recession, but not always.
+
+```{r standardaized_sentiment}
+erp_text_pres %>%
+  anti_join(custom_stop_words2, by = "word") %>%
+  inner_join(get_sentiments("bing"), by = "word") %>%
+  count(year, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  left_join(erp_words, by = "year") %>% 
+  mutate(sentiment = (positive - negative) / n) %>% 
+  mutate(publish = as.Date(str_c(year, "-02-01"))) %>% 
+  ggplot(aes(publish, sentiment)) +
+  geom_hline(yintercept = 0, color = "white", size = 2) +
+  geom_rect(data = recessions_df, inherit.aes = FALSE,
+            aes(xmin = Peak, xmax = Trough, ymin = -Inf, ymax = +Inf),
+            fill='darkgray', alpha=0.5) +
+  geom_line() +
+  labs(x = "")
+```
+
+EOL
