@@ -270,7 +270,7 @@ erp_text_pres %>%
             aes(xmin = Peak, xmax = Trough, ymin = -Inf, ymax = +Inf),
             fill='darkgray', alpha=0.5) +
   geom_line() +
-  labs(x = "")
+  xlab(NULL)
 ```
 
 EOL
