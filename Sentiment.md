@@ -11,7 +11,7 @@ Mitsuo Shiota
   - [Sentiment analysis of the president
     part](#sentiment-analysis-of-the-president-part)
 
-Updated: 2020-03-02
+Updated: 2020-03-19
 
 ## Motivation
 
@@ -391,7 +391,7 @@ erp_text_pres %>%
             aes(xmin = Peak, xmax = Trough, ymin = -Inf, ymax = +Inf),
             fill='darkgray', alpha=0.5) +
   geom_line() +
-  labs(x = "")
+  xlab(NULL)
 ```
 
 ![](Sentiment_files/figure-gfm/standardaized_sentiment-1.png)<!-- -->

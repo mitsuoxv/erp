@@ -17,7 +17,7 @@ Mitsuo Shiota
     analysis](#tf-idf-term-frequencyinverse-document-frequency-analysis)
   - [Top 10 words by year](#top-10-words-by-year)
 
-Updated: 2020-02-27
+Updated: 2020-03-19
 
 ## Motivation
 
@@ -61,31 +61,41 @@ Bank of St. Louis. My small complaint is URL inconsistency. Now
 before\_split directory size is around 500MB.
 
 ``` python
-import requests, time
+import requests
+import time
 
 for year in range(1947, 2021):
     if year <= 1949:
         # Although there are midyear reports from 1949 to 1952, I ignore them
-        url = 'https://fraser.stlouisfed.org/files/docs/publications/ERP/{0}/ERP_{0}_January.pdf'.format(year)
+        url = 'https://fraser.stlouisfed.org/files/docs/publications/ERP/{0}/ERP_{0}_January.pdf'.format(
+            year)
     elif year <= 1952:
-        url = 'https://fraser.stlouisfed.org/files/docs/publications/ERP/{0}/ERP_January_{0}.pdf'.format(year)
+        url = 'https://fraser.stlouisfed.org/files/docs/publications/ERP/{0}/ERP_January_{0}.pdf'.format(
+            year)
     elif year <= 1986:
-        url = 'https://fraser.stlouisfed.org/files/docs/publications/ERP/{0}/ERP_{0}.pdf'.format(year)
+        url = 'https://fraser.stlouisfed.org/files/docs/publications/ERP/{0}/ERP_{0}.pdf'.format(
+            year)
     elif year <= 1988:
-        url = 'https://fraser.stlouisfed.org/files/docs/publications/ERP/{0}/ER_{0}.pdf'.format(year)
+        url = 'https://fraser.stlouisfed.org/files/docs/publications/ERP/{0}/ER_{0}.pdf'.format(
+            year)
     elif year <= 2008:
-        url = 'https://fraser.stlouisfed.org/files/docs/publications/ERP/{0}/ERP_{0}.pdf'.format(year)
+        url = 'https://fraser.stlouisfed.org/files/docs/publications/ERP/{0}/ERP_{0}.pdf'.format(
+            year)
     elif year == 2009:
-        url = 'https://fraser.stlouisfed.org/files/docs/publications/ERP/{0}/{0}_ERP.pdf'.format(year)
+        url = 'https://fraser.stlouisfed.org/files/docs/publications/ERP/{0}/{0}_ERP.pdf'.format(
+            year)
     elif year == 2010:
-        url = 'https://fraser.stlouisfed.org/files/docs/publications/ERP/{0}/erp_{0}.pdf'.format(year)
+        url = 'https://fraser.stlouisfed.org/files/docs/publications/ERP/{0}/erp_{0}.pdf'.format(
+            year)
     elif year <= 2014:
-        url = 'https://fraser.stlouisfed.org/files/docs/publications/ERP/{0}/{0}_erp.pdf'.format(year)
+        url = 'https://fraser.stlouisfed.org/files/docs/publications/ERP/{0}/{0}_erp.pdf'.format(
+            year)
     elif year <= 2019:
-        url = 'https://fraser.stlouisfed.org/files/docs/publications/ERP/{}_erp.pdf'.format(year)
+        url = 'https://fraser.stlouisfed.org/files/docs/publications/ERP/{}_erp.pdf'.format(
+            year)
     else:
         url = 'https://www.whitehouse.gov/wp-content/uploads/2020/02/2020-Economic-Report-of-the-President-WHCEA.pdf'
-    
+
     output_filename = 'data/before_split/{}_erp.pdf'.format(year)
 
     myfile = requests.get(url)
@@ -105,6 +115,7 @@ after\_split directory size is around 400MB.
 ``` python
 from PyPDF2 import PdfFileReader, PdfFileWriter
 
+
 def pdf_split(year, app_A_start_page):
 
     input_filename = 'data/before_split/{}_erp.pdf'.format(year)
@@ -121,16 +132,17 @@ def pdf_split(year, app_A_start_page):
     with open(output_filename, 'wb') as out:
         pdf_writer.write(out)
 
+
 year = range(1947, 2021)
 app_A_start_page = [44, 98, 110,
-134, 176, 160, 160, 126, 79, 109, 85, 85, 78,
-84, 82, 199, 160, 173, 177,193, 204, 201, 218,
-148, 171, 182, 147, 233, 224, 159, 176, 244, 169,
-190, 220, 222, 152, 208, 223, 241, 233, 236, 297,
-271, 270, 285, 331, 255, 251, 265, 286, 267, 312,
-278, 245, 295, 251, 270, 186, 252, 203, 202, 261,
-310, 170, 291, 303, 350, 370, 386, 549, 514, 619,
-348]
+                    134, 176, 160, 160, 126, 79, 109, 85, 85, 78,
+                    84, 82, 199, 160, 173, 177, 193, 204, 201, 218,
+                    148, 171, 182, 147, 233, 224, 159, 176, 244, 169,
+                    190, 220, 222, 152, 208, 223, 241, 233, 236, 297,
+                    271, 270, 285, 331, 255, 251, 265, 286, 267, 312,
+                    278, 245, 295, 251, 270, 186, 252, 203, 202, 261,
+                    310, 170, 291, 303, 350, 370, 386, 549, 514, 619,
+                    348]
 
 for year, app_A_start_page in zip(year, app_A_start_page):
     pdf_split(year, app_A_start_page)
@@ -511,10 +523,10 @@ plot_tf_idf <- function(year_start, year_end) {
 }
 ```
 
-Digitization is not perfect. When I search “inn” in 1956, I find
-some axis parts of charts as “inn”. So, you may see
-some strange words below. Also, be aware that the scale of the tf-idf
-axis is not the same across years.
+Digitization is not perfect. When I search “inn” in 1956, I find some
+axis parts of charts as “inn”. So, you may see some strange words below.
+Also, be aware that the scale of the tf-idf axis is not the same across
+years.
 
 Anyway, can’t you feel the history?
 
