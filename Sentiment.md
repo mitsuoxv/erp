@@ -6,12 +6,12 @@ Mitsuo Shiota
   - [Motivation](#motivation)
   - [Prepare cleaned-up texts and tidytext
     data](#prepare-cleaned-up-texts-and-tidytext-data)
+  - [Whose talks are more verbose?](#whose-talks-are-more-verbose)
   - [Check sentimental words by
     bigram](#check-sentimental-words-by-bigram)
-  - [Sentiment analysis of the president
-    part](#sentiment-analysis-of-the-president-part)
+  - [Sentiment analysis](#sentiment-analysis)
 
-Updated: 2020-03-19
+Updated: 2020-07-14
 
 ## Motivation
 
@@ -23,74 +23,105 @@ Len Kiefer](http://lenkiefer.com/2018/07/28/text-mining-fedspeak/).
 
 ## Prepare cleaned-up texts and tidytext data
 
+The files in `texts/presidents/`, such as `1947_pres.txt`, are the
+president parts which I have manually cleaned up. I will do sentiment
+analysis to the president part, not including the Council of Economic
+Advisers part.
+
+I cleaned up by:
+
+1.  correcting word order, where digitization made mistakes in shaping
+    lines;
+
+2.  correcting words, where optical recognition made mistakes due to
+    dirt, or the author apparently misspelled;
+
+3.  making punctuation common over reports, following my memory of [“The
+    Mac is Not a Typewriter” by Robin P.
+    Williams](https://www.goodreads.com/book/show/41600.The_Mac_is_Not_a_Typewriter),
+    which I must have, but could not find now. As an exception, using
+    minus mark instead of hyphen; and
+
+4.  changing lines, where I encounter “;”, “:”, “—” or “,” and when I
+    feel changed lines are natural if they were in President Johnson’s
+    reports.
+
+I tried to be consistent over reports of different authors. Honestly, I
+am not sure whether “text” has become more consistent or not, as a
+result.
+
 To refresh memory, I show some variables below.
 
-erp\_text\_raw\_df is a data frame consisted of 4 colums: “year”,
-“page”, “line”, “text”. “text” is not yet tidy.
+erp\_text\_raw\_df is a data frame consisted of 3 colums: “year”, “line”
+and “text”. “text” is basically a sentence, but in some cases, it is a
+clause.
 
 ``` r
-erp_text_raw_df
+erp_text_df
 ```
 
-    ## # A tibble: 696,915 x 4
-    ##    text                                                         page  line  year
-    ##    <chr>                                                       <int> <int> <int>
-    ##  1 "                              The Economic Report"             1     1  1947
-    ##  2 "                                  of the President"            1     2  1947
-    ##  3 "                              TRANSMITTED TO THE CONGRESS"     1     3  1947
-    ##  4 "                                     January 8, 1947"          1     4  1947
-    ##  5 ""                                                              1     5  1947
-    ##  6 ""                                                              1     6  1947
-    ##  7 ""                                                              1     7  1947
-    ##  8 ""                                                              1     8  1947
-    ##  9 ""                                                              2     1  1947
-    ## 10 ""                                                              2     2  1947
-    ## # ... with 696,905 more rows
+    ## # A tibble: 13,106 x 3
+    ##    text                                                               year  line
+    ##    <chr>                                                             <int> <int>
+    ##  1 To the Congress of the United States:                              1947     1
+    ##  2 As the year 1947 opens America has never been so strong or so pr…  1947     2
+    ##  3 Nor have our prospects ever been brighter.                         1947     3
+    ##  4 Yet in the minds of a great many of us there is a fear of anothe…  1947     4
+    ##  5 But America was not built on fear.                                 1947     5
+    ##  6 America was built on courage, on imagination and an unbeatable d…  1947     6
+    ##  7 The job at hand today is to see to it that America is not ravage…  1947     7
+    ##  8 Nor is prosperity in the United States important to the American…  1947     8
+    ##  9 It is the foundation of world prosperity and world peace.          1947     9
+    ## 10 And the world is looking to us.                                    1947    10
+    ## # … with 13,096 more rows
 
 erp\_text is a data frame after “text” was tokenized into “word”. It has
-4 colums: “year”, “page”, “line”, “word”.
+3 colums: “year”, “line”, “word”.
 
 ``` r
 erp_text
 ```
 
-    ## # A tibble: 5,856,704 x 4
-    ##     page  line  year word       
-    ##    <int> <int> <int> <chr>      
-    ##  1     1     1  1947 the        
-    ##  2     1     1  1947 economic   
-    ##  3     1     1  1947 report     
-    ##  4     1     2  1947 of         
-    ##  5     1     2  1947 the        
-    ##  6     1     2  1947 president  
-    ##  7     1     3  1947 transmitted
-    ##  8     1     3  1947 to         
-    ##  9     1     3  1947 the        
-    ## 10     1     3  1947 congress   
-    ## # ... with 5,856,694 more rows
+    ## # A tibble: 248,141 x 3
+    ##     year  line word    
+    ##    <int> <int> <chr>   
+    ##  1  1947     1 to      
+    ##  2  1947     1 the     
+    ##  3  1947     1 congress
+    ##  4  1947     1 of      
+    ##  5  1947     1 the     
+    ##  6  1947     1 united  
+    ##  7  1947     1 states  
+    ##  8  1947     2 as      
+    ##  9  1947     2 the     
+    ## 10  1947     2 year    
+    ## # … with 248,131 more rows
 
-pages\_pres is a data frame to show the page in which the president part
-starts and ends. It has 4 colums: “year”, “start”, “end”, “n\_pages”. I
-will do sentiment analysis only for this president part.
+## Whose talks are more verbose?
 
-``` r
-pages_pres
-```
+Old Democrats tend to write more lines and words in a report.
 
-    ## # A tibble: 74 x 4
-    ##     year start   end n_pages
-    ##    <int> <dbl> <dbl>   <dbl>
-    ##  1  1947    10    11       2
-    ##  2  1948     9    18      10
-    ##  3  1949     9    26      18
-    ##  4  1950     9    25      17
-    ##  5  1951     9    33      25
-    ##  6  1952     9    39      31
-    ##  7  1953     9    35      27
-    ##  8  1954     4     6       3
-    ##  9  1955     5     8       4
-    ## 10  1956     5     8       4
-    ## # ... with 64 more rows
+![](Sentiment_files/figure-gfm/n_lines_per_report-1.png)<!-- -->
+
+![](Sentiment_files/figure-gfm/n_words_per_report-1.png)<!-- -->
+
+The number of words per line does not vary much among the Presidents,
+partly because I have somewhat arbitrarily changed lines by trying to be
+consistent over different authors.
+
+![](Sentiment_files/figure-gfm/n_words_per_line-1.png)<!-- -->
+
+Distribution concentrates from 5 to 34 words per line.
+
+![](Sentiment_files/figure-gfm/words_per_line2-1.png)<!-- -->
+
+President Johnson wrote the most lines in his 8 reports. The second is
+Truman in his 7 reports, and the third is Carter in his 4 reports. My
+attempt to [let the presidents
+speak](https://github.com/mitsuoxv/erp/blob/master/let_pres_speak.ipynb)
+is biased to old Democrats.
+
+![](Sentiment_files/figure-gfm/n_lines_total-1.png)<!-- -->
 
 ## Check sentimental words by bigram
 
@@ -107,26 +138,26 @@ sentiment_word_rank <- erp_text %>%
 sentiment_word_rank
 ```
 
-    ## # A tibble: 3,134 x 4
-    ##    word      sentiment     n  rank
-    ##    <chr>     <chr>     <int> <int>
-    ##  1 benefits  positive   6590     1
-    ##  2 important positive   5556     2
-    ##  3 work      positive   5457     3
-    ##  4 well      positive   5319     4
-    ##  5 decline   negative   4427     5
-    ##  6 debt      negative   3373     6
-    ##  7 support   positive   3135     7
-    ##  8 recovery  positive   3115     8
-    ##  9 available positive   3063     9
-    ## 10 poverty   negative   3012    10
-    ## # ... with 3,124 more rows
+    ## # A tibble: 1,533 x 4
+    ##    word       sentiment     n  rank
+    ##    <chr>      <chr>     <int> <int>
+    ##  1 work       positive    344     1
+    ##  2 free       positive    273     2
+    ##  3 progress   positive    249     3
+    ##  4 prosperity positive    229     4
+    ##  5 problems   negative    228     5
+    ##  6 important  positive    227     6
+    ##  7 support    positive    217     7
+    ##  8 strong     positive    210     8
+    ##  9 well       positive    206     9
+    ## 10 better     positive    190    11
+    ## # … with 1,523 more rows
 
 Some of sentimental words in “bing” are just technical terms in economic
 reports. “debt” is such an example.
 
-“gross” ranks 26, but it is likely to be a part of technical terms, like
-“gross domestic product”. Thus Len Kiefer suspects in [“Text Mining
+“gross” is likely to be a part of technical terms, like “gross domestic
+product”. Thus Len Kiefer suspects in [“Text Mining
 Fedspeak”](http://lenkiefer.com/2018/07/28/text-mining-fedspeak/).
 
 I suspect “benefits” is another example, as it appears in the technical
@@ -140,37 +171,46 @@ sentiment_word_rank %>%
     ## # A tibble: 1 x 4
     ##   word  sentiment     n  rank
     ##   <chr> <chr>     <int> <int>
-    ## 1 gross negative   2022    26
+    ## 1 gross negative     60    58
 
-Let’s check Len Kiefer’s and my suspicion. I go back to
-erp\_text\_raw\_df, and tokenize “text” not by a single word into
-“word”, but by 2 consecutive words into “bigram” this time. Then I
-get erp\_bigrams, which is a data frame of 4 colums: “year”, “page”,
-“line” and “bigram”.
+``` r
+sentiment_word_rank %>% 
+  filter(word == "benefits")
+```
+
+    ## # A tibble: 1 x 4
+    ##   word     sentiment     n  rank
+    ##   <chr>    <chr>     <int> <int>
+    ## 1 benefits positive    177    12
+
+Let’s check Len Kiefer’s and my suspicion. I go back to erp\_text\_df,
+and tokenize “text” not by a single word into “word”, but by 2
+consecutive words into “bigram” this time. Then I get erp\_bigrams,
+which is a data frame of 4 colums: “year”, “page”, “line” and “bigram”.
 
 ``` r
 erp_bigrams <-   
-  erp_text_raw_df %>%
+  erp_text_df %>%
   unnest_tokens(bigram, text, token = "ngrams", n = 2) %>% 
   drop_na(bigram)
 
 erp_bigrams
 ```
 
-    ## # A tibble: 5,573,938 x 4
-    ##     page  line  year bigram         
-    ##    <int> <int> <int> <chr>          
-    ##  1     1     1  1947 the economic   
-    ##  2     1     1  1947 economic report
-    ##  3     1     1  1948 the economic   
-    ##  4     1     1  1948 economic report
-    ##  5     1     1  1949 the economic   
-    ##  6     1     1  1949 economic report
-    ##  7     1     1  1950 he economic    
-    ##  8     1     1  1950 economic report
-    ##  9     1     1  1951 the economic   
-    ## 10     1     1  1951 economic report
-    ## # ... with 5,573,928 more rows
+    ## # A tibble: 235,035 x 3
+    ##     year  line bigram       
+    ##    <int> <int> <chr>        
+    ##  1  1947     1 to the       
+    ##  2  1947     1 the congress 
+    ##  3  1947     1 congress of  
+    ##  4  1947     1 of the       
+    ##  5  1947     1 the united   
+    ##  6  1947     1 united states
+    ##  7  1947     2 as the       
+    ##  8  1947     2 the year     
+    ##  9  1947     2 year 1947    
+    ## 10  1947     2 1947 opens   
+    ## # … with 235,025 more rows
 
 Most frequently used bigrams are uninteresting, as they include stop
 words.
@@ -180,20 +220,20 @@ erp_bigrams %>%
   count(bigram, sort = TRUE)
 ```
 
-    ## # A tibble: 1,079,408 x 2
-    ##    bigram            n
-    ##    <chr>         <int>
-    ##  1 of the        49200
-    ##  2 in the        43634
-    ##  3 to the        15051
-    ##  4 and the       13362
-    ##  5 united states  9088
-    ##  6 for the        9050
-    ##  7 the united     8871
-    ##  8 by the         8731
-    ##  9 on the         8616
-    ## 10 percent of     7320
-    ## # ... with 1,079,398 more rows
+    ## # A tibble: 87,730 x 2
+    ##    bigram           n
+    ##    <chr>        <int>
+    ##  1 of the        2135
+    ##  2 in the        1630
+    ##  3 to the         807
+    ##  4 of our         663
+    ##  5 and the        544
+    ##  6 for the        516
+    ##  7 the congress   437
+    ##  8 we have        420
+    ##  9 we must        417
+    ## 10 the economy    342
+    ## # … with 87,720 more rows
 
 So I separate “bigram” into “word1” and “word2”, and filter so that
 either “word1” or “word2” is not a stop word. After filtering, most
@@ -212,20 +252,20 @@ bigrams_filtered %>%
   count(word1, word2, sort = TRUE)
 ```
 
-    ## # A tibble: 523,138 x 3
-    ##    word1        word2        n
-    ##    <chr>        <chr>    <int>
-    ##  1 labor        force     3198
-    ##  2 health       care      2528
-    ##  3 economic     growth    2442
-    ##  4 economic     report    2044
-    ##  5 unemployment rate      1905
-    ##  6 1            1         1856
-    ##  7 social       security  1838
-    ##  8 federal      reserve   1784
-    ##  9 annual       rate      1777
-    ## 10 labor        market    1771
-    ## # ... with 523,128 more rows
+    ## # A tibble: 23,793 x 3
+    ##    word1    word2          n
+    ##    <chr>    <chr>      <int>
+    ##  1 economic growth       273
+    ##  2 federal  government   149
+    ##  3 billion  dollars      141
+    ##  4 american people       122
+    ##  5 1        2            108
+    ##  6 price    stability     99
+    ##  7 social   security      92
+    ##  8 private  sector        91
+    ##  9 american economy       89
+    ## 10 labor    force         84
+    ## # … with 23,783 more rows
 
 What word follows “gross” most frequently? As Len Kiefer suspects,
 “gross” is a part of technical terms, and should not be included in
@@ -237,20 +277,15 @@ bigrams_filtered %>%
   count(word2, sort = TRUE)
 ```
 
-    ## # A tibble: 172 x 2
-    ##    word2          n
-    ##    <chr>      <int>
-    ##  1 national     644
-    ##  2 domestic     304
-    ##  3 private      129
-    ##  4 investment   108
-    ##  5 income        50
-    ##  6 saving        49
-    ##  7 job           39
-    ##  8 product       38
-    ##  9 farm          23
-    ## 10 business      21
-    ## # ... with 162 more rows
+    ## # A tibble: 6 x 2
+    ##   word2          n
+    ##   <chr>      <int>
+    ## 1 national      48
+    ## 2 domestic       8
+    ## 3 debt           1
+    ## 4 investment     1
+    ## 5 private        1
+    ## 6 stock          1
 
 What word precedes “benefits” most frequently? My suspicion is
 confirmed.
@@ -261,20 +296,20 @@ bigrams_filtered %>%
   count(word1, sort = TRUE)
 ```
 
-    ## # A tibble: 674 x 2
+    ## # A tibble: 50 x 2
     ##    word1            n
     ##    <chr>        <int>
-    ##  1 security       203
-    ##  2 economic       195
-    ##  3 fringe         113
-    ##  4 health         113
-    ##  5 insurance       97
-    ##  6 unemployment    96
-    ##  7 net             84
-    ##  8 retirement      69
-    ##  9 ui              63
-    ## 10 social          62
-    ## # ... with 664 more rows
+    ##  1 security        10
+    ##  2 extended         5
+    ##  3 insurance        4
+    ##  4 economic         3
+    ##  5 unemployment     3
+    ##  6 cash             2
+    ##  7 enormous         2
+    ##  8 fringe           2
+    ##  9 increased        2
+    ## 10 receiving        2
+    ## # … with 40 more rows
 
 So I add “benefits” to the stop words prepared by Len Kiefer in [“Text
 Mining
@@ -295,23 +330,14 @@ custom_stop_words2 <-
             stop_words)
 ```
 
-## Sentiment analysis of the president part
+## Sentiment analysis
 
-I will do sentiment analysis to the president part, not including the
-Council of Economic Advisers part. So I first get the president part.
-
-``` r
-erp_text_pres <- erp_text %>% 
-  left_join(pages_pres, by = "year") %>% 
-  filter(page >= start, page <= end)
-```
-
-Next I count both positive and negative words, and take the difference
-as “sentiment”. I draw “sentiment” by year. Looks like the presidents
+I count both positive and negative words, and take the difference as
+“sentiment”. I draw “sentiment” by year. Looks like the presidents
 before 1970 were optimistic. But wait.
 
 ``` r
-erp_text_pres %>%
+erp_text %>%
   anti_join(custom_stop_words2, by = "word") %>%
   inner_join(get_sentiments("bing"), by = "word") %>%
   count(year, sentiment) %>%
@@ -324,26 +350,13 @@ erp_text_pres %>%
 ![](Sentiment_files/figure-gfm/not_standardaized_sentiment-1.png)<!-- -->
 
 As I count the number of words, “sentiment” gets bigger either in
-positive or negative direction, as the number of words increase. As I
-drawed in [td-idf
-analysis](https://github.com/mitsuoxv/erp/blob/master/README.md), the
-number of pages before Reagan was usually large.
-
-``` r
-pages_pres %>% 
-  ggplot(aes(year, n_pages)) +
-  geom_hline(yintercept = 0, color = "white", size = 2) +
-  geom_line()
-```
-
-![](Sentiment_files/figure-gfm/n_pages-1.png)<!-- -->
-
-So I decide to standardize by the number of words excluding stop words.
-First I count the number of words excluding stop words by year.
+positive or negative direction, as the number of words increase. So I
+decide to standardize by the number of words excluding stop words. First
+I count the number of words excluding stop words by year.
 
 ``` r
 erp_words <-
-  erp_text_pres %>%
+  erp_text %>%
   anti_join(custom_stop_words2, by = "word") %>% 
   group_by(year) %>% 
   count()
@@ -377,7 +390,7 @@ recessions. The sentiments tend to fall after the recession, but not
 always.
 
 ``` r
-erp_text_pres %>%
+erp_text %>%
   anti_join(custom_stop_words2, by = "word") %>%
   inner_join(get_sentiments("bing"), by = "word") %>%
   count(year, sentiment) %>%

@@ -5,6 +5,8 @@ date: "2020/3/2"
 output: 
   github_document:
     toc: TRUE
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -24,82 +26,173 @@ library(tidytext)
 
 ## Prepare cleaned-up texts and tidytext data
 
-```{r preparation, echo=FALSE}
-load("data/erp.rdata")
+The files in `texts/presidents/`, such as `1947_pres.txt`, are the president parts which I have manually cleaned up. I will do sentiment analysis to the president part, not including the Council of Economic Advisers part.
 
-erp_text_raw <- vector("list", length = length(erp_list))
+I cleaned up by:
+
+1. correcting word order, where digitization made mistakes in shaping lines;
+
+1. correcting words, where optical recognition made mistakes due to dirt, or the author apparently misspelled;
+
+1. making punctuation common over reports, following my memory of ["The Mac is Not a Typewriter" by Robin P. Williams](https://www.goodreads.com/book/show/41600.The_Mac_is_Not_a_Typewriter), which I must have, but could not find now. As an exception, using minus mark instead of hyphen; and
+
+1. changing lines, where I encounter ";", ":", "—" or "," and when I feel changed lines are natural if they were in President Johnson's reports.
+
+I tried to be consistent over reports of different authors. Honestly, I am not sure whether "text" has become more consistent or not, as a result.
+
+```{r preparation, echo=FALSE}
+files <- dir("texts/presidents/")
+
+erp_text_raw <- vector("list", length = length(files))
 
 for (i in seq_along(erp_text_raw)) {
   erp_text_raw[[i]] <- 
     tibble(
-      text = unlist(erp_list[[i]]),
-      report = names(erp_list)[i],
-      page = 1:length(erp_list[[i]])
-    ) %>% 
-    mutate(text = str_split(text,"\r")) %>% 
-    unnest(text) %>% 
-    group_by(report, page) %>% 
-    mutate(line = row_number()) %>% 
-    ungroup() %>% 
-    mutate(text = str_remove_all(text, "\n"))
-  
+      text = readLines(str_c("texts/presidents/", files[i])),
+      year = as.integer(str_sub(files[i], 1L, 4L))
+    )
 }
 
 erp_text_raw_df <- bind_rows(erp_text_raw)
 
-erp_text_raw_df <- erp_text_raw_df %>% 
-  mutate(year = as.integer(str_sub(report, 1L, 4L))) %>% 
-  select(-report)
+erp_text_df <- erp_text_raw_df %>% 
+  group_by(year) %>% 
+  mutate(line = row_number()) %>% 
+  ungroup()
 
-pages_pres <- tibble(
-  year = 1947:2020,
-  start = c(10, 9, 9,
-            9, 9, 9, 9, 4, 5, 5, 5, 5, 5,
-            5, 5, 11, 11, 11, 9, 9, 9, 9, 9,
-            9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
-            9, 9, 9, 9, 7, 9, 9, 9, 9, 9,
-            9, 9, 9, 9, 9, 4, 7, 9, 9, 9,
-            4, 4, 4, 5, 8, 5, 5, 5, 5, 4,
-            8, 8, 7, 7, 8, 8, 8, 8, 8, 8,
-            8),
-  end = c(11, 18, 26,
-          25, 33, 39, 35, 6, 8, 8, 9, 8, 9,
-          7, 7, 35, 30, 26, 27, 27, 32, 34, 30,
-          17, 15, 13, 13, 16, 14, 14, 17, 29, 21,
-          21, 25, 16, 14, 13, 15, 17, 14, 16, 17,
-          14, 16, 11, 11, 14, 9, 10, 11, 11, 12,
-          8, 6, 5, 6, 9, 7, 7, 7, 7, 8,
-          14, 12, 9, 9, 11, 11, 11, 11, 16, 11,
-          13)
-)
+# remove bullet only lines
+erp_text_df <- erp_text_df %>% 
+  filter(!str_detect(text, "^.$")) %>% 
+  filter(!str_detect(text, "^\\(.\\)$")) %>% 
+  filter(!str_detect(text, "^.\\.$"))
 
-pages_pres <- pages_pres %>% 
-  mutate(n_pages = end - start + 1)
-
-erp_text <- erp_text_raw_df %>% 
-  unnest_tokens(word, text) %>% 
-  mutate(word = str_remove_all(word, "[^A-Za-z ]")) %>%
-  filter(word != "")
+erp_text <- erp_text_df %>% 
+  unnest_tokens(word, text)
 ```
 
 To refresh memory, I show some variables below.
 
-erp_text_raw_df is a data frame consisted of 4 colums: "year", "page", "line", "text". "text" is not yet tidy.
+erp_text_raw_df is a data frame consisted of 3 colums: "year", "line" and "text". "text" is basically a sentence, but in some cases, it is a clause.
 
-```{r erp_text_raw_df}
-erp_text_raw_df
+```{r erp_text_df}
+erp_text_df
 ```
 
-erp_text is a data frame after "text" was tokenized into "word". It has 4 colums: "year", "page", "line", "word".
+erp_text is a data frame after "text" was tokenized into "word". It has 3 colums: "year", "line", "word".
 
 ```{r erp_text}
 erp_text
 ```
 
-pages_pres is a data frame to show the page in which the president part starts and ends. It has 4 colums: "year", "start", "end", "n_pages". I will do sentiment analysis only for this president part.
+## Whose talks are more verbose?
 
-```{r pages_pres}
-pages_pres
+Old Democrats tend to write more lines and words in a report.
+
+```{r n_lines_per_report, echo=FALSE}
+year_pres <- tibble(
+  year = 1947:2020,
+  author = c(
+    rep("Truman", 7),
+    rep("Eisenhower", 8),
+    rep("Kennedy", 2),
+    rep("Johnson", 6),
+    rep("Nixon", 5),
+    rep("Ford", 3),
+    rep("Carter", 4),
+    rep("Reagan", 8),
+    rep("Bush, H.W.", 4),
+    rep("Clinton", 8),
+    rep("Bush, W.", 8),
+    rep("Obama", 8),
+    rep("Trump", 3)
+  )
+)
+
+party_pres <- tibble(
+  author = unique(year_pres$author),
+  party = c("D", "R", "D", "D", "R", "R", "D", "R", "R", "D", "R", "D", "R")
+)
+
+pres_lines <- erp_text_df %>% 
+  group_by(year) %>% 
+  count(year) %>% 
+  left_join(year_pres, by = "year") %>% 
+  left_join(party_pres, by = "author")
+
+pres_lines$author <- factor(pres_lines$author, levels = unique(year_pres$author))
+
+pres_lines %>% 
+  ggplot(aes(author, n)) +
+  geom_boxplot(aes(color = party)) +
+  coord_flip() +
+  labs(y = "number of lines per report") +
+  scale_color_manual(values = c("blue", "red"))
+```
+
+```{r n_words_per_report, echo=FALSE}
+pres_words <- erp_text %>% 
+  group_by(year) %>% 
+  count(year) %>% 
+  left_join(year_pres, by = "year") %>% 
+  left_join(party_pres, by = "author")
+
+pres_words$author <- factor(pres_words$author, levels = unique(year_pres$author))
+
+pres_words %>% 
+  ggplot(aes(author, n)) +
+  geom_boxplot(aes(color = party)) +
+  coord_flip() +
+  labs(y = "number of words per report") +
+  scale_color_manual(values = c("blue", "red"))
+```
+
+The number of words per line does not vary much among the Presidents, partly because I have somewhat arbitrarily changed lines by trying to be consistent over different authors.
+
+```{r n_words_per_line, echo=FALSE}
+words_per_line <- erp_text %>% 
+  group_by(year, line) %>% 
+  count(line) %>% 
+  left_join(year_pres, by = "year") %>% 
+  left_join(party_pres, by = "author")
+
+words_per_line$author <- factor(words_per_line$author, levels = unique(year_pres$author))
+
+words_per_line %>% 
+  ggplot(aes(author, n)) +
+  geom_boxplot(aes(color = party)) +
+  coord_flip() +
+  labs(y = "number of words per line") +
+  scale_color_manual(values = c("blue", "red"))
+```
+
+Distribution concentrates from 5 to 34 words per line.
+
+```{r words_per_line2, echo=FALSE}
+erp_text %>% 
+  group_by(year, line) %>% 
+  count(line) %>% 
+  ggplot(aes(n)) +
+  geom_histogram(binwidth = 5, boundary = 0) +
+  labs(x = "number of words per line")
+```
+
+President Johnson wrote the most lines in his 8 reports. The second is Truman in his 7 reports, and the third is Carter in his 4 reports. My attempt to  [let the presidents speak](https://github.com/mitsuoxv/erp/blob/master/let_pres_speak.ipynb) is biased to old Democrats.
+
+```{r n_lines_total, echo=FALSE}
+pres_lines_total <- erp_text_df %>% 
+  left_join(year_pres, by = "year") %>% 
+  group_by(author) %>% 
+  count(author) %>% 
+  left_join(party_pres, by = "author")
+
+pres_lines_total$author <- factor(pres_lines_total$author, levels = unique(year_pres$author))
+
+pres_lines_total %>% 
+  ggplot(aes(author, n)) +
+  geom_col(aes(fill = party)) +
+  coord_flip() +
+  labs(y = "number of lines in total") +
+  scale_fill_manual(values = c("blue", "red"))
 ```
 
 ## Check sentimental words by bigram
@@ -117,7 +210,7 @@ sentiment_word_rank
 
 Some of sentimental words in "bing" are just technical terms in economic reports. "debt" is such an example.
 
-"gross" ranks 26, but it is likely to be a part of technical terms, like "gross domestic product". Thus Len Kiefer suspects in ["Text Mining Fedspeak"](http://lenkiefer.com/2018/07/28/text-mining-fedspeak/).
+"gross" is likely to be a part of technical terms, like "gross domestic product". Thus Len Kiefer suspects in ["Text Mining Fedspeak"](http://lenkiefer.com/2018/07/28/text-mining-fedspeak/).
 
 I suspect "benefits" is another example, as it appears in the technical terms like "social benefits".
 
@@ -126,11 +219,16 @@ sentiment_word_rank %>%
   filter(word == "gross")
 ```
 
-Let's check Len Kiefer's and my suspicion. I go back to erp_text_raw_df, and tokenize "text" not by a single word into "word", but by 2 consecutive words into "bigram" this time. Then I get erp_bigrams, which is a data frame of 4 colums: "year", "page", "line" and "bigram".
+```{r benefits}
+sentiment_word_rank %>% 
+  filter(word == "benefits")
+```
+
+Let's check Len Kiefer's and my suspicion. I go back to erp_text_df, and tokenize "text" not by a single word into "word", but by 2 consecutive words into "bigram" this time. Then I get erp_bigrams, which is a data frame of 4 colums: "year", "page", "line" and "bigram".
 
 ```{r bigram}
 erp_bigrams <-   
-  erp_text_raw_df %>%
+  erp_text_df %>%
   unnest_tokens(bigram, text, token = "ngrams", n = 2) %>% 
   drop_na(bigram)
 
@@ -191,20 +289,12 @@ custom_stop_words2 <-
             stop_words)
 ```
 
-## Sentiment analysis of the president part
+## Sentiment analysis
 
-I will do sentiment analysis to the president part, not including the Council of Economic Advisers part. So I first get the president part.
-
-```{r get_president_part}
-erp_text_pres <- erp_text %>% 
-  left_join(pages_pres, by = "year") %>% 
-  filter(page >= start, page <= end)
-```
-
-Next I count both positive and negative words, and take the difference as "sentiment". I draw "sentiment" by year. Looks like the presidents before 1970 were optimistic. But wait. 
+I count both positive and negative words, and take the difference as "sentiment". I draw "sentiment" by year. Looks like the presidents before 1970 were optimistic. But wait. 
 
 ```{r not_standardaized_sentiment}
-erp_text_pres %>%
+erp_text %>%
   anti_join(custom_stop_words2, by = "word") %>%
   inner_join(get_sentiments("bing"), by = "word") %>%
   count(year, sentiment) %>%
@@ -214,21 +304,11 @@ erp_text_pres %>%
   geom_line()
 ```
 
-As I count the number of words, "sentiment" gets bigger either in positive or negative direction, as the number of words increase. As I drawed in [td-idf analysis](https://github.com/mitsuoxv/erp/blob/master/README.md), the number of pages before Reagan was usually large.
-
-```{r n_pages}
-pages_pres %>% 
-  ggplot(aes(year, n_pages)) +
-  geom_hline(yintercept = 0, color = "white", size = 2) +
-  geom_line()
-
-```
-
-So I decide to standardize by the number of words excluding stop words. First I count the number of words excluding stop words by year.
+As I count the number of words, "sentiment" gets bigger either in positive or negative direction, as the number of words increase. So I decide to standardize by the number of words excluding stop words. First I count the number of words excluding stop words by year.
 
 ```{r count_words}
 erp_words <-
-  erp_text_pres %>%
+  erp_text %>%
   anti_join(custom_stop_words2, by = "word") %>% 
   group_by(year) %>% 
   count()
@@ -256,7 +336,7 @@ recessions_df = read.table(textConnection(
 As the reports were mostly published in January or February of each year, I put the points in February in each year. The shaded areas are recessions. The sentiments tend to fall after the recession, but not always.
 
 ```{r standardaized_sentiment}
-erp_text_pres %>%
+erp_text %>%
   anti_join(custom_stop_words2, by = "word") %>%
   inner_join(get_sentiments("bing"), by = "word") %>%
   count(year, sentiment) %>%
