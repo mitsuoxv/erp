@@ -38,7 +38,7 @@ I first tried to download each pdf into a temporary file, and to extract text by
 
 I have already downloaded the pdf files by download.py whose codes are below. I appreciate the digitization works done by the Federal Reserve Bank of St. Louis. My small complaint is URL inconsistency. Now before_split directory size is around 500MB.
 
-```{python download, eval=FALSE}
+```{python download, eval=FALSE, python.reticulate=FALSE}
 import requests
 import time
 
@@ -87,7 +87,7 @@ for year in range(1947, 2021):
 ```
 Next I manually check which page starts Appendix A, split pdf files, and save the files which exclude appendixes in the directory data/after_split. I have used split.py whose codes are below. Now after_split directory size is around 400MB.
 
-```{python split, eval=FALSE}
+```{python split, eval=FALSE, python.reticulate=FALSE}
 from PyPDF2 import PdfFileReader, PdfFileWriter
 
 
@@ -314,7 +314,7 @@ plot_tf_idf <- function(year_start, year_end) {
   erp_textb %>% 
     filter(year >= year_start, year <= year_end) %>% 
     anti_join(custom_stop_words, by="word") %>%
-    mutate(word = factor(word, levels = rev(unique(word)))) %>% 
+    mutate(word = reorder_within(word, tf_idf, year)) %>% 
     group_by(year) %>% 
     top_n(10, tf_idf) %>% 
     ungroup() %>% 
@@ -322,7 +322,8 @@ plot_tf_idf <- function(year_start, year_end) {
     geom_col(show.legend = FALSE) +
     labs(x = NULL, y = "tf-idf") +
     facet_wrap(~ year, scales = "free", ncol = 5) +
-    coord_flip()
+    coord_flip() +
+    scale_x_reordered()
 }
 
 ```

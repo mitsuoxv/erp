@@ -17,7 +17,7 @@ Mitsuo Shiota
     analysis](#tf-idf-term-frequencyinverse-document-frequency-analysis)
   - [Top 10 words by year](#top-10-words-by-year)
 
-Updated: 2020-03-19
+Updated: 2020-08-10
 
 ## Motivation
 
@@ -267,7 +267,7 @@ length(erp_list$`2005_excl_app`)
 str(erp_list$`2005_excl_app`)
 ```
 
-    ##  chr [1:185] "Economic Report\r\nof the President\r\nTransmitted to the Congress February 2005\r\n    Together with the Annua"| __truncated__ ...
+    ##  chr [1:185] "Economic Report\nof the President\nTransmitted to the Congress February 2005\n    Together with the Annual Repo"| __truncated__ ...
 
 As the Federal Reserve Bank of St. Louis added some signatures to its
 digitization work, I remove them.
@@ -334,6 +334,8 @@ erp_text_raw_df %>%
   geom_line()
 ```
 
+    ## `summarise()` ungrouping output (override with `.groups` argument)
+
 ![](README_files/figure-gfm/plot_total_pages-1.png)<!-- -->
 
 I check manually which pages are the president part, and not the CEA
@@ -395,20 +397,20 @@ erp_text <- erp_text_raw_df %>%
 erp_text
 ```
 
-    ## # A tibble: 5,856,704 x 4
+    ## # A tibble: 5,744,731 x 4
     ##     page  line  year word       
     ##    <int> <int> <int> <chr>      
     ##  1     1     1  1947 the        
     ##  2     1     1  1947 economic   
     ##  3     1     1  1947 report     
-    ##  4     1     2  1947 of         
-    ##  5     1     2  1947 the        
-    ##  6     1     2  1947 president  
-    ##  7     1     3  1947 transmitted
-    ##  8     1     3  1947 to         
-    ##  9     1     3  1947 the        
-    ## 10     1     3  1947 congress   
-    ## # ... with 5,856,694 more rows
+    ##  4     1     1  1947 of         
+    ##  5     1     1  1947 the        
+    ##  6     1     1  1947 president  
+    ##  7     1     1  1947 transmitted
+    ##  8     1     1  1947 to         
+    ##  9     1     1  1947 the        
+    ## 10     1     1  1947 congress   
+    ## # … with 5,744,721 more rows
 
 I count words. The result is uninteresting.
 
@@ -417,20 +419,20 @@ erp_text  %>%
   count(word, sort = TRUE) 
 ```
 
-    ## # A tibble: 44,304 x 2
+    ## # A tibble: 107,658 x 2
     ##    word       n
     ##    <chr>  <int>
-    ##  1 the   384492
-    ##  2 of    245785
-    ##  3 and   177433
-    ##  4 in    172910
-    ##  5 to    159196
-    ##  6 a      88766
-    ##  7 for    67752
-    ##  8 that   55180
-    ##  9 is     46606
-    ## 10 by     41383
-    ## # ... with 44,294 more rows
+    ##  1 the   371067
+    ##  2 of    239163
+    ##  3 and   171362
+    ##  4 in    168113
+    ##  5 to    153808
+    ##  6 a      86155
+    ##  7 for    65245
+    ##  8 that   52483
+    ##  9 is     45239
+    ## 10 by     40000
+    ## # … with 107,648 more rows
 
 Next I exclude stop words which are “a”, “the”, and something like that.
 The result is still boring, as I know the reports are about the economy.
@@ -441,20 +443,20 @@ erp_text  %>%
   count(word, sort = TRUE) 
 ```
 
-    ## # A tibble: 43,658 x 2
+    ## # A tibble: 107,011 x 2
     ##    word         n
     ##    <chr>    <int>
-    ##  1 percent  30792
-    ##  2 economic 22676
-    ##  3 growth   21294
-    ##  4 rate     18249
-    ##  5 income   16114
-    ##  6 tax      15853
-    ##  7 federal  13145
-    ##  8 rates    12383
-    ##  9 labor    12155
-    ## 10 prices   12052
-    ## # ... with 43,648 more rows
+    ##  1 percent  30185
+    ##  2 economic 21884
+    ##  3 growth   20329
+    ##  4 rate     17715
+    ##  5 income   15407
+    ##  6 tax      15147
+    ##  7 federal  12660
+    ##  8 rates    12067
+    ##  9 prices   11771
+    ## 10 labor    11719
+    ## # … with 107,001 more rows
 
 ## tf-idf (term frequency–inverse document frequency) analysis
 
@@ -474,20 +476,20 @@ erp_textb <- erp_text %>%
 erp_textb
 ```
 
-    ## # A tibble: 450,492 x 6
-    ##     year word              n      tf   idf  tf_idf
-    ##    <int> <chr>         <int>   <dbl> <dbl>   <dbl>
-    ##  1  2020 opioids         330 0.00278  3.21 0.00891
-    ##  2  2020 opioid          320 0.00270  3.21 0.00864
-    ##  3  2018 cyber           402 0.00223  3.21 0.00715
-    ##  4  2020 https           276 0.00233  2.22 0.00517
-    ##  5  2019 https           415 0.00182  2.22 0.00405
-    ##  6  2018 https           316 0.00175  2.22 0.00390
-    ##  7  2016 cea             299 0.00247  1.53 0.00379
-    ##  8  2005 hiv             104 0.00161  2.22 0.00359
-    ##  9  2018 cybersecurity   274 0.00152  2.36 0.00359
-    ## 10  1985 takeover         99 0.00122  2.92 0.00356
-    ## # ... with 450,482 more rows
+    ## # A tibble: 538,983 x 6
+    ##     year word         n      tf   idf  tf_idf
+    ##    <int> <chr>    <int>   <dbl> <dbl>   <dbl>
+    ##  1  2020 opioids    295 0.00261  3.21 0.00838
+    ##  2  2020 opioid     292 0.00259  3.21 0.00829
+    ##  3  2018 cyber      351 0.00205  3.21 0.00657
+    ##  4  2020 https      276 0.00245  2.22 0.00544
+    ##  5  2019 https      415 0.00191  2.22 0.00426
+    ##  6  2018 https      316 0.00185  2.22 0.00411
+    ##  7  2016 cea        276 0.00239  1.53 0.00366
+    ##  8  2005 hiv         99 0.00163  2.22 0.00363
+    ##  9  1985 takeover    99 0.00122  2.92 0.00356
+    ## 10  2017 aca        273 0.00168  2.00 0.00337
+    ## # … with 538,973 more rows
 
 ## Top 10 words by year
 
@@ -511,7 +513,7 @@ plot_tf_idf <- function(year_start, year_end) {
   erp_textb %>% 
     filter(year >= year_start, year <= year_end) %>% 
     anti_join(custom_stop_words, by="word") %>%
-    mutate(word = factor(word, levels = rev(unique(word)))) %>% 
+    mutate(word = reorder_within(word, tf_idf, year)) %>% 
     group_by(year) %>% 
     top_n(10, tf_idf) %>% 
     ungroup() %>% 
@@ -519,7 +521,8 @@ plot_tf_idf <- function(year_start, year_end) {
     geom_col(show.legend = FALSE) +
     labs(x = NULL, y = "tf-idf") +
     facet_wrap(~ year, scales = "free", ncol = 5) +
-    coord_flip()
+    coord_flip() +
+    scale_x_reordered()
 }
 ```
 
