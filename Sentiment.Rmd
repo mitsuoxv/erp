@@ -90,7 +90,7 @@ Old Democrats tend to write more lines and words in a report.
 
 ```{r n_lines_per_report, echo=FALSE}
 year_pres <- tibble(
-  year = 1947:2020,
+  year = 1947:2021,
   author = c(
     rep("Truman", 7),
     rep("Eisenhower", 8),
@@ -104,7 +104,7 @@ year_pres <- tibble(
     rep("Clinton", 8),
     rep("Bush, W.", 8),
     rep("Obama", 8),
-    rep("Trump", 3)
+    rep("Trump", 4)
   )
 )
 
@@ -317,20 +317,29 @@ erp_words <-
 I prepare to draw shaded areas of recession. I owe this technique also to Len Kiefer, as I refer to his ["Plotting U.S. Macroeconomic Trends with FRED and R"](http://lenkiefer.com/2017/12/11/plotting-u-s-macroeconomic-trends-with-fred-and-r/).
 
 ```{r recession_df}
-recessions_df = read.table(textConnection(
-  "Peak, Trough
-  1948-11-01, 1949-10-01
-  1953-07-01, 1954-05-01
-  1957-08-01, 1958-04-01
-  1960-04-01, 1961-02-01
-  1969-12-01, 1970-11-01
-  1973-11-01, 1975-03-01
-  1980-01-01, 1980-07-01
-  1981-07-01, 1982-11-01
-  1990-07-01, 1991-03-01
-  2001-03-01, 2001-11-01
-  2007-12-01, 2009-06-01"), sep=',',
-  colClasses=c('Date', 'Date'), header=TRUE)
+recessions_df = tribble(
+  ~Peak, ~Trough,
+  #----------|----------
+  "1948-11-01", "1949-10-01",
+  "1953-07-01", "1954-05-01",
+  "1957-08-01", "1958-04-01",
+  "1960-04-01", "1961-02-01",
+  "1969-12-01", "1970-11-01",
+  "1973-11-01", "1975-03-01",
+  "1980-01-01", "1980-07-01",
+  "1981-07-01", "1982-11-01",
+  "1990-07-01", "1991-03-01",
+  "2001-03-01", "2001-11-01",
+  "2007-12-01", "2009-06-01",
+  "2020-02-01", "2021-02-01"
+)
+
+recessions_df <- recessions_df %>% 
+  mutate(
+    Peak = as.Date(Peak),
+    Trough = as.Date(Trough)
+  )
+
 ```
 
 As the reports were mostly published in January or February of each year, I put the points in February in each year. The shaded areas are recessions. The sentiments tend to fall after the recession, but not always.

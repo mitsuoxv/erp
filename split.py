@@ -18,7 +18,7 @@ def pdf_split(year, app_A_start_page):
         pdf_writer.write(out)
 
 
-year = range(1947, 2021)
+year = range(1947, 2022)
 app_A_start_page = [44, 98, 110,
                     134, 176, 160, 160, 126, 79, 109, 85, 85, 78,
                     84, 82, 199, 160, 173, 177, 193, 204, 201, 218,
@@ -27,7 +27,7 @@ app_A_start_page = [44, 98, 110,
                     271, 270, 285, 331, 255, 251, 265, 286, 267, 312,
                     278, 245, 295, 251, 270, 186, 252, 203, 202, 261,
                     310, 170, 291, 303, 350, 370, 386, 549, 514, 619,
-                    348]
+                    348, 440]
 
 for year, app_A_start_page in zip(year, app_A_start_page):
     pdf_split(year, app_A_start_page)

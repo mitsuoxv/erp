@@ -15,7 +15,7 @@ def make_pres_pdf(year, start_page, end_page):
     with open(output_filename, 'wb') as output:
         writer.write(output)
 
-year = range(1947, 2021)
+year = range(1947, 2022)
 
 start_page = [10, 9, 9, \
     9, 9, 9, 9, 4, 5, 5, 5, 5, 5, \
@@ -25,7 +25,7 @@ start_page = [10, 9, 9, \
     9, 9, 9, 9, 9, 4, 7, 9, 9, 9, \
     4, 4, 4, 5, 8, 5, 5, 5, 5, 4, \
     8, 8, 7, 7, 8, 8, 8, 8, 8, 8, \
-    8]
+    8, 8]
 
 end_page = [11, 18, 26, \
     25, 33, 39, 35, 6, 8, 8, 9, 8, 9, \
@@ -35,7 +35,7 @@ end_page = [11, 18, 26, \
     14, 16, 11, 11, 14, 9, 10, 11, 11, 12, \
     8, 6, 5, 6, 9, 7, 7, 7, 7, 8, \
     14, 12, 9, 9, 11, 11, 11, 11, 16, 11, \
-    13]
+    13, 12]
 
 for year, start_page, end_page in zip(year, start_page, end_page):
     make_pres_pdf(year, start_page, end_page)

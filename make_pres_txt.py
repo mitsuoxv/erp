@@ -21,6 +21,6 @@ def make_pres_txt(year):
         out.write(text)
 
 
-for year in range(1947, 2021):
+for year in range(1947, 2022):
     make_pres_txt(year)
 

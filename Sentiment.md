@@ -3,15 +3,15 @@ Sentiment analysis of the economic report of the president
 Mitsuo Shiota
 2020/3/2
 
-  - [Motivation](#motivation)
-  - [Prepare cleaned-up texts and tidytext
+-   [Motivation](#motivation)
+-   [Prepare cleaned-up texts and tidytext
     data](#prepare-cleaned-up-texts-and-tidytext-data)
-  - [Whose talks are more verbose?](#whose-talks-are-more-verbose)
-  - [Check sentimental words by
+-   [Whose talks are more verbose?](#whose-talks-are-more-verbose)
+-   [Check sentimental words by
     bigram](#check-sentimental-words-by-bigram)
-  - [Sentiment analysis](#sentiment-analysis)
+-   [Sentiment analysis](#sentiment-analysis)
 
-Updated: 2020-07-14
+Updated: 2021-03-05
 
 ## Motivation
 
@@ -60,7 +60,7 @@ clause.
 erp_text_df
 ```
 
-    ## # A tibble: 13,106 x 3
+    ## # A tibble: 13,179 x 3
     ##    text                                                               year  line
     ##    <chr>                                                             <int> <int>
     ##  1 To the Congress of the United States:                              1947     1
@@ -73,7 +73,7 @@ erp_text_df
     ##  8 Nor is prosperity in the United States important to the American…  1947     8
     ##  9 It is the foundation of world prosperity and world peace.          1947     9
     ## 10 And the world is looking to us.                                    1947    10
-    ## # … with 13,096 more rows
+    ## # … with 13,169 more rows
 
 erp\_text is a data frame after “text” was tokenized into “word”. It has
 3 colums: “year”, “line”, “word”.
@@ -82,7 +82,7 @@ erp\_text is a data frame after “text” was tokenized into “word”. It has
 erp_text
 ```
 
-    ## # A tibble: 248,141 x 3
+    ## # A tibble: 250,035 x 3
     ##     year  line word    
     ##    <int> <int> <chr>   
     ##  1  1947     1 to      
@@ -95,7 +95,7 @@ erp_text
     ##  8  1947     2 as      
     ##  9  1947     2 the     
     ## 10  1947     2 year    
-    ## # … with 248,131 more rows
+    ## # … with 250,025 more rows
 
 ## Whose talks are more verbose?
 
@@ -138,20 +138,20 @@ sentiment_word_rank <- erp_text %>%
 sentiment_word_rank
 ```
 
-    ## # A tibble: 1,533 x 4
+    ## # A tibble: 1,545 x 4
     ##    word       sentiment     n  rank
     ##    <chr>      <chr>     <int> <int>
-    ##  1 work       positive    344     1
-    ##  2 free       positive    273     2
+    ##  1 work       positive    345     1
+    ##  2 free       positive    274     2
     ##  3 progress   positive    249     3
-    ##  4 prosperity positive    229     4
+    ##  4 prosperity positive    233     4
     ##  5 problems   negative    228     5
     ##  6 important  positive    227     6
     ##  7 support    positive    217     7
     ##  8 strong     positive    210     8
-    ##  9 well       positive    206     9
+    ##  9 well       positive    207     9
     ## 10 better     positive    190    11
-    ## # … with 1,523 more rows
+    ## # … with 1,535 more rows
 
 Some of sentimental words in “bing” are just technical terms in economic
 reports. “debt” is such an example.
@@ -171,7 +171,7 @@ sentiment_word_rank %>%
     ## # A tibble: 1 x 4
     ##   word  sentiment     n  rank
     ##   <chr> <chr>     <int> <int>
-    ## 1 gross negative     60    58
+    ## 1 gross negative     61    58
 
 ``` r
 sentiment_word_rank %>% 
@@ -181,7 +181,7 @@ sentiment_word_rank %>%
     ## # A tibble: 1 x 4
     ##   word     sentiment     n  rank
     ##   <chr>    <chr>     <int> <int>
-    ## 1 benefits positive    177    12
+    ## 1 benefits positive    177    13
 
 Let’s check Len Kiefer’s and my suspicion. I go back to erp\_text\_df,
 and tokenize “text” not by a single word into “word”, but by 2
@@ -197,7 +197,7 @@ erp_bigrams <-
 erp_bigrams
 ```
 
-    ## # A tibble: 235,035 x 3
+    ## # A tibble: 236,856 x 3
     ##     year  line bigram       
     ##    <int> <int> <chr>        
     ##  1  1947     1 to the       
@@ -210,7 +210,7 @@ erp_bigrams
     ##  8  1947     2 the year     
     ##  9  1947     2 year 1947    
     ## 10  1947     2 1947 opens   
-    ## # … with 235,025 more rows
+    ## # … with 236,846 more rows
 
 Most frequently used bigrams are uninteresting, as they include stop
 words.
@@ -220,20 +220,20 @@ erp_bigrams %>%
   count(bigram, sort = TRUE)
 ```
 
-    ## # A tibble: 87,730 x 2
+    ## # A tibble: 88,439 x 2
     ##    bigram           n
     ##    <chr>        <int>
-    ##  1 of the        2135
-    ##  2 in the        1630
-    ##  3 to the         807
-    ##  4 of our         663
-    ##  5 and the        544
-    ##  6 for the        516
-    ##  7 the congress   437
-    ##  8 we have        420
+    ##  1 of the        2150
+    ##  2 in the        1637
+    ##  3 to the         818
+    ##  4 of our         668
+    ##  5 and the        547
+    ##  6 for the        520
+    ##  7 the congress   438
+    ##  8 we have        426
     ##  9 we must        417
     ## 10 the economy    342
-    ## # … with 87,720 more rows
+    ## # … with 88,429 more rows
 
 So I separate “bigram” into “word1” and “word2”, and filter so that
 either “word1” or “word2” is not a stop word. After filtering, most
@@ -252,24 +252,24 @@ bigrams_filtered %>%
   count(word1, word2, sort = TRUE)
 ```
 
-    ## # A tibble: 23,793 x 3
+    ## # A tibble: 24,061 x 3
     ##    word1    word2          n
     ##    <chr>    <chr>      <int>
-    ##  1 economic growth       273
+    ##  1 economic growth       274
     ##  2 federal  government   149
     ##  3 billion  dollars      141
-    ##  4 american people       122
+    ##  4 american people       130
     ##  5 1        2            108
     ##  6 price    stability     99
-    ##  7 social   security      92
-    ##  8 private  sector        91
+    ##  7 private  sector        93
+    ##  8 social   security      92
     ##  9 american economy       89
-    ## 10 labor    force         84
-    ## # … with 23,783 more rows
+    ## 10 labor    force         85
+    ## # … with 24,051 more rows
 
 What word follows “gross” most frequently? As Len Kiefer suspects,
-“gross” is a part of technical terms, and should not be included in
-the sentimental words.
+“gross” is a part of technical terms, and should not be included in the
+sentimental words.
 
 ``` r
 bigrams_filtered %>%
@@ -281,7 +281,7 @@ bigrams_filtered %>%
     ##   word2          n
     ##   <chr>      <int>
     ## 1 national      48
-    ## 2 domestic       8
+    ## 2 domestic       9
     ## 3 debt           1
     ## 4 investment     1
     ## 5 private        1
@@ -368,20 +368,28 @@ with FRED and
 R”](http://lenkiefer.com/2017/12/11/plotting-u-s-macroeconomic-trends-with-fred-and-r/).
 
 ``` r
-recessions_df = read.table(textConnection(
-  "Peak, Trough
-  1948-11-01, 1949-10-01
-  1953-07-01, 1954-05-01
-  1957-08-01, 1958-04-01
-  1960-04-01, 1961-02-01
-  1969-12-01, 1970-11-01
-  1973-11-01, 1975-03-01
-  1980-01-01, 1980-07-01
-  1981-07-01, 1982-11-01
-  1990-07-01, 1991-03-01
-  2001-03-01, 2001-11-01
-  2007-12-01, 2009-06-01"), sep=',',
-  colClasses=c('Date', 'Date'), header=TRUE)
+recessions_df = tribble(
+  ~Peak, ~Trough,
+  #----------|----------
+  "1948-11-01", "1949-10-01",
+  "1953-07-01", "1954-05-01",
+  "1957-08-01", "1958-04-01",
+  "1960-04-01", "1961-02-01",
+  "1969-12-01", "1970-11-01",
+  "1973-11-01", "1975-03-01",
+  "1980-01-01", "1980-07-01",
+  "1981-07-01", "1982-11-01",
+  "1990-07-01", "1991-03-01",
+  "2001-03-01", "2001-11-01",
+  "2007-12-01", "2009-06-01",
+  "2020-02-01", "2021-02-01"
+)
+
+recessions_df <- recessions_df %>% 
+  mutate(
+    Peak = as.Date(Peak),
+    Trough = as.Date(Trough)
+  )
 ```
 
 As the reports were mostly published in January or February of each

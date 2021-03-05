@@ -19,6 +19,6 @@ def clean_up_txt(year):
         f.write(text)
 
 
-for year in range(1947, 2021):
+for year in range(1947, 2022):
     clean_up_txt(year)
 
